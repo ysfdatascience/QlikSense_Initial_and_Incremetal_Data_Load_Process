@@ -1,0 +1,91 @@
+Sub InitialLoad
+
+	zTemp:
+    	load * from lib://my_data/LogFile.qvd (qvd) where TaskName = 'Initial Load';
+    
+    let vRecords = NoOfRows('zTemp');
+    
+    drop table zTemp;
+    
+    
+    if vRecords = 0 then
+    
+    	
+   	 LIB CONNECT TO 'ProductInventory';
+	 ProductInventory:
+     LOAD SKU as ProductKey,
+        DateKey,
+        UnitCost,
+        StockOut,
+        date(StockOutDate, 'YYYY-MM-DD') as StockOutDate,
+        StockIn,
+        StockInDate,
+        StockOnHand,
+        StockBackOrderQty,
+        StockBackOrderDate,
+        MinStockLevel,
+        MaxStockLevel,
+        StockTakeFlag;
+    SQL SELECT SKU,
+        DateKey,
+        UnitCost,
+        StockOut,
+        StockOutDate,
+        StockIn,
+        StockInDate,
+        StockOnHand,
+        StockBackOrderQty,
+        StockBackOrderDate,
+        MinStockLevel,
+        MaxStockLevel,
+        StockTakeFlag
+    FROM "C:\Users\yy\Desktop\qlik_sense_project\myFolder\StockManagement_Incremental.accdb".ProductInventory;
+
+	store ProductInventory into lib://my_data/ProductInventory.qvd (qvd);
+	
+    let vEnd = Timestamp(Now());
+    let vNoRecords = NoOfRows('ProductInventory');
+    let vTaskName = 'Initial Load';
+    
+    zMaxDate: // get the max data date
+    load max(StockOutDate) as MaxValue resident ProductInventory;
+    
+    let vMaxDataDate = date(Peek('MaxValue', 0 , 'zMaxDate'), 'YYYY-MM-DD'); // assign date to a variable
+    
+    drop table zMaxDate;
+    
+LogFile:
+LOAD
+    TaskName,
+    TaskStart,
+    TaskEnd,
+    TableLoaded,
+    RowsProcessed,
+    DataDate,
+    "Comment"
+FROM [lib://my_data/LogFile.qvd]
+(qvd);
+
+Concatenate(LogFile)
+load * Inline 
+[
+TaskName, TaskStart, TaskEnd, TableLoaded, RowsProcessed, DataDate, Comment
+$(vTaskName), $(vStart), $(vEnd), ProductInventory, $(vNoRecords), $(vMaxDataDate), 'Initial Loading'
+];
+
+
+store LogFile into lib://my_data/LogFile.qvd (qvd);
+
+drop table ProductInventory;
+
+else
+
+	trace 'Initial load exists';
+    
+	end if;
+
+	
+end sub;
+
+
+

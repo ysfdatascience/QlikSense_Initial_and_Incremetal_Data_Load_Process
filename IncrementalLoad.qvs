@@ -1,0 +1,100 @@
+Sub IncrementalLoad
+
+
+zTemp:
+load max(DataDate) as MaxValue from lib://my_data/LogFile.qvd (qvd);
+
+let vMaxDataDate = date(peek('MaxValue', 0 , 'zTemp'), 'YYYY-MM-DD');
+
+let formatted_date = date(vMaxDataDate, 'DD-MM-YYYY');
+
+drop table zTemp;
+
+
+ProductInventoryInc:
+LIB CONNECT TO 'ProductInventory';
+
+ LOAD SKU as ProductKey,
+    DateKey,
+    UnitCost,
+    StockOut,
+    date(StockOutDate, 'YYYY-MM-DD') as StockOutDate,
+    StockIn,
+    StockInDate,
+    StockOnHand,
+    StockBackOrderQty,
+    StockBackOrderDate,
+    MinStockLevel,
+    MaxStockLevel,
+    StockTakeFlag;
+SQL SELECT SKU,
+    DateKey,
+    UnitCost,
+    StockOut,
+    StockOutDate,
+    StockIn,
+    StockInDate,
+    StockOnHand,
+    StockBackOrderQty,
+    StockBackOrderDate,
+    MinStockLevel,
+    MaxStockLevel,
+    StockTakeFlag
+FROM "C:\Users\yy\Desktop\qlik_sense_project\myFolder\StockManagement_Incremental.accdb".ProductInventory
+where StockOutDate > #$(vMaxDataDate)#;
+
+Concatenate
+LOAD
+    ProductKey,
+    DateKey,
+    UnitCost,
+    StockOut,
+    StockOutDate,
+    StockIn,
+    StockInDate,
+    StockOnHand,
+    StockBackOrderQty,
+    StockBackOrderDate,
+    MinStockLevel,
+    MaxStockLevel,
+    StockTakeFlag
+FROM [lib://my_data/ProductInventory.qvd]
+(qvd) where StockOutDate <= $(vMaxDataDate);
+
+store ProductInventoryInc into lib://my_data/ProductInventory.qvd (qvd);
+
+let vEnd = Timestamp(Now());
+let NoIncRows = NoOfRows('ProductInventoryInc');
+let vTaskName = 'Incremental Load';
+
+zNewMaxDate:
+load max(StockOutDate) as Max_Value resident ProductInventoryInc;
+let new_max_date = date(peek('Max_Value', 0, 'zNewMaxDate'), 'YYYY-MM-DD');
+
+LogFile:
+LOAD
+    TaskName,
+    TaskStart,
+    TaskEnd,
+    TableLoaded,
+    RowsProcessed,
+    DataDate,
+    "Comment"
+FROM [lib://my_data/LogFile.qvd]
+(qvd);
+
+Concatenate(LogFile)
+load * Inline 
+[
+TaskName, TaskStart, TaskEnd, TableLoaded, RowsProcessed, DataDate, Comment
+$(vTaskName), $(vStart), $(vEnd), ProductInventory, $(NoIncRows), $(new_max_date), 'Incremental Loading'
+];
+
+store LogFile into lib://my_data/LogFile.qvd (qvd);
+
+end sub;
+
+
+
+
+

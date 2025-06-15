@@ -1,0 +1,32 @@
+
+sub CheckLogFile
+
+	
+	if  isnull(FileSize('lib://my_data/LogFile.qvd')) then
+    	
+		Trace 'lib://my_data/LogFile.qvd ' & 'does not exist - creating the file !!'; // check if log file exists
+        
+        let vEnd = Timestamp(Now()); // end of this task
+        
+        LogFile: // log table
+        Load 
+        * 
+        inline
+        [
+        	TaskName, TaskStart, TaskEnd, TableLoaded, RowsProcessed, DataDate, Comment
+        	$(vTaskName), $(vStart), $(vEnd), N/A, 1, N/A, New Log File Created
+        ];
+        
+        store LogFile into lib://my_data/LogFile.qvd (qvd);
+        
+      	//drop table LogFile;
+        
+     else
+     
+     	trace 'Log file found !!';
+        
+	end if;
+   
+end sub;
+
+
