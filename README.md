@@ -1,7 +1,5 @@
-# QlikSense_Initial_and_Incremetal_Data_Load_Process
+# QlikSense_Initial_and_Incremetal_Data_Load_Process-ETL
 
-
-# Qlik Sense Data Load Script – Product Inventory ETL
 
 This repository contains Qlik Sense load script logic to manage full and incremental loading of product inventory data from an Access database into QVD files. It also maintains a simple log mechanism to track task execution.
 
