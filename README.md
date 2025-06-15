@@ -1,0 +1,1 @@
+# QlikSense_Initial_and_Incremetal_Data_Load_Process
